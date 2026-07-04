@@ -64,6 +64,7 @@ const processUserEmails = async (user: any) => {
       const searchIterator = client.fetch(limitedUids, { envelope: true, source: true, uid: true });
       
       for await (const message of searchIterator) {
+        if (!message.source) continue;
         const parsed = await simpleParser(message.source);
         const subject = parsed.subject || '';
         const from = parsed.from?.text || '';

@@ -2,12 +2,13 @@
   "name": "ai-assistant-backend",
   "version": "1.0.0",
   "description": "Backend for AI Personal Assistant",
-  "main": "src/server.ts",
+  "main": "dist/server.js",
   "type": "module",
   "scripts": {
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "postinstall": "npm run build"
   },
   "dependencies": {
     "@types/imap-simple": "^4.2.10",

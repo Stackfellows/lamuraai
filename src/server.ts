@@ -14,22 +14,57 @@ import mongoose from 'mongoose';
 const app = express();
 const server = http.createServer(app);
 
+// Global Uncaught Exception Handlers for Production
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT EXCEPTION! 💥 Shutting down...');
+  console.error(err.name, err.message, err.stack);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (err: any) => {
+  console.error('UNHANDLED REJECTION! 💥 Shutting down...');
+  console.error(err.name, err.message);
+  server.close(() => {
+    process.exit(1);
+  });
+});
+
 // Setup Socket.io
 const io = new Server(server, {
   cors: {
-    origin: '*', // Restrict this in production
-    methods: ['GET', 'POST']
+    origin: process.env.NODE_ENV === 'production' ? (process.env.FRONTEND_URL || 'https://lamuraai.netlify.app') : '*',
+    methods: ['GET', 'POST'],
+    credentials: true
   }
 });
 
-// Middlewares
+const allowedOrigins = process.env.NODE_ENV === 'production' 
+  ? [process.env.FRONTEND_URL || 'https://lamuraai.netlify.app'] 
+  : ['http://localhost:5173', 'http://localhost:3000'];
+
+const corsOptions = {
+  origin: function (origin: any, callback: any) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+};
+
 app.use(helmet());
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(customMongoSanitize);
-app.use(morgan('dev'));
+
+if (process.env.NODE_ENV === 'production') {
+  app.use(morgan('combined'));
+} else {
+  app.use(morgan('dev'));
+}
 
 import authRoutes from './routes/authRoutes.js';
 import taskRoutes from './routes/taskRoutes.js';

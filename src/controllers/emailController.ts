@@ -107,16 +107,17 @@ export const getInbox = catchAsync(async (req: AuthRequest, res: Response, next:
     const parsedEmails = [];
     
     try {
-      const totalMessages = client.mailbox.exists;
+      const totalMessages = typeof client.mailbox === 'boolean' ? 0 : client.mailbox.exists;
       if (totalMessages > 0) {
         const start = Math.max(1, totalMessages - 14);
         for await (const message of client.fetch(`${start}:*`, { envelope: true, source: true })) {
-          const parsed = await simpleParser(message.source);
+          if (!message.source) continue;
+          const parsed: any = await simpleParser(message.source);
           parsedEmails.push({
             id: message.uid,
             subject: parsed.subject || '(No Subject)',
             from: parsed.from?.text || 'Unknown',
-            date: parsed.date || message.envelope.date,
+            date: parsed.date || (message.envelope && message.envelope.date) || new Date(),
             text: parsed.text || parsed.textAsHtml || 'No content'
           });
         }
