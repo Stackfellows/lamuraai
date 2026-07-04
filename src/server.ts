@@ -88,7 +88,11 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
 app.use('/api/email', emailRoutes);
 
-// Basic route
+// Basic routes
+app.get('/', (req, res) => {
+  res.status(200).send('Lamora AI Backend is running smoothly.');
+});
+
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'OK', message: 'API is running smoothly.' });
 });
