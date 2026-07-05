@@ -8,7 +8,8 @@ import { AppError } from '../utils/AppError.js';
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
 
 export const register = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-  const { name, email, password } = req.body;
+  const { name, password } = req.body;
+  const email = req.body.email?.toLowerCase();
   const existing = await User.findOne({ email });
   if (existing) {
     return next(new AppError('Email already exists', 400));
@@ -20,7 +21,8 @@ export const register = catchAsync(async (req: Request, res: Response, next: Nex
 });
 
 export const login = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-  const { email, password } = req.body;
+  const { password } = req.body;
+  const email = req.body.email?.toLowerCase();
   const user = await User.findOne({ email });
   if (!user) {
     return next(new AppError('Invalid credentials', 400));
