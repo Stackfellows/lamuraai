@@ -32,7 +32,7 @@ process.on('unhandledRejection', (err: any) => {
 // Setup Socket.io
 const io = new Server(server, {
   cors: {
-    origin: process.env.NODE_ENV === 'production' ? (process.env.FRONTEND_URL || 'https://lamuraai.netlify.app') : '*',
+    origin: (origin, callback) => callback(null, origin || true),
     methods: ['GET', 'POST'],
     credentials: true
   }
@@ -40,15 +40,16 @@ const io = new Server(server, {
 
 const allowedOrigins = process.env.NODE_ENV === 'production' 
   ? [process.env.FRONTEND_URL || 'https://lamuraai.netlify.app'] 
-  : ['http://localhost:5173', 'http://localhost:3000'];
+  : [/^http:\/\/localhost:\d+$/, /^http:\/\/127\.0\.0\.1:\d+$/];
 
 const corsOptions = {
-  origin: function (origin: any, callback: any) {
-    if (!origin || allowedOrigins.includes(origin)) {
+  origin: function (origin: string | undefined, callback: (err: Error | null, allow?: string | boolean) => void) {
+    if (!origin) {
       callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+      return;
     }
+    // Reflect the requesting origin to allow credentials from any frontend deployment
+    callback(null, origin);
   },
   credentials: true,
 };

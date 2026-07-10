@@ -109,7 +109,9 @@ export const getInbox = catchAsync(async (req: AuthRequest, res: Response, next:
     try {
       const totalMessages = typeof client.mailbox === 'boolean' ? 0 : client.mailbox.exists;
       if (totalMessages > 0) {
-        const start = Math.max(1, totalMessages - 14);
+        // Limit to 5 most recent emails to prevent server timeout on large mailboxes
+        const fetchCount = 5; 
+        const start = Math.max(1, totalMessages - fetchCount + 1);
         for await (const message of client.fetch(`${start}:*`, { envelope: true, source: true })) {
           if (!message.source) continue;
           const parsed: any = await simpleParser(message.source);

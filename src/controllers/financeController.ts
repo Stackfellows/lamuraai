@@ -5,8 +5,22 @@ import { catchAsync } from '../utils/catchAsync.js';
 import { AppError } from '../utils/AppError.js';
 
 export const getTransactions = catchAsync(async (req: AuthRequest, res: Response, next: NextFunction) => {
-  const transactions = await Finance.find({ user: req.user.id }).sort({ date: -1 });
-  res.json(transactions);
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 50;
+  const skip = (page - 1) * limit;
+
+  const total = await Finance.countDocuments({ user: req.user.id });
+  const transactions = await Finance.find({ user: req.user.id })
+    .sort({ date: -1 })
+    .skip(skip)
+    .limit(limit);
+    
+  res.json({
+    data: transactions,
+    total,
+    page,
+    totalPages: Math.ceil(total / limit)
+  });
 });
 
 export const createTransaction = catchAsync(async (req: AuthRequest, res: Response, next: NextFunction) => {

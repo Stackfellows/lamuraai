@@ -6,6 +6,10 @@ import { AppError } from '../utils/AppError.js';
 export const chatWithAi = catchAsync(async (req: AuthRequest, res: Response, next: NextFunction) => {
   const { message, history } = req.body;
   
+  if (!message || message.length > 1000) {
+    return next(new AppError('Message is required and must be under 1000 characters', 400));
+  }
+
   const apiKey = process.env.GROK_API_KEY;
   if (!apiKey) {
     return next(new AppError('AI API key not configured', 500));
@@ -13,7 +17,7 @@ export const chatWithAi = catchAsync(async (req: AuthRequest, res: Response, nex
 
   const messages = [
     { role: 'system', content: 'You are a helpful AI assistant for a management dashboard. Keep your answers concise and useful.' },
-    ...(history || []),
+    ...(Array.isArray(history) ? history.slice(-5) : []), // limit history to last 5
     { role: 'user', content: message }
   ];
 
@@ -40,6 +44,10 @@ export const chatWithAi = catchAsync(async (req: AuthRequest, res: Response, nex
 export const parseTask = catchAsync(async (req: AuthRequest, res: Response, next: NextFunction) => {
   const { prompt } = req.body;
   
+  if (!prompt || prompt.length > 500) {
+    return next(new AppError('Prompt is required and must be under 500 characters', 400));
+  }
+
   const apiKey = process.env.GROK_API_KEY;
   if (!apiKey) {
     return next(new AppError('AI API key not configured', 500));
@@ -99,6 +107,10 @@ Do NOT output anything else except the raw JSON object.`;
 export const parseFinance = catchAsync(async (req: AuthRequest, res: Response, next: NextFunction) => {
   const { prompt } = req.body;
   
+  if (!prompt || prompt.length > 500) {
+    return next(new AppError('Prompt is required and must be under 500 characters', 400));
+  }
+
   const apiKey = process.env.GROK_API_KEY;
   if (!apiKey) {
     return next(new AppError('AI API key not configured', 500));
