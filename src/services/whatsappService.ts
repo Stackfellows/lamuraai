@@ -226,24 +226,40 @@ export const connectToWhatsApp = async (userId: string) => {
           if (lastReply && (now - lastReply < ONE_HOUR)) return;
         }
 
-        let delayMs = 10000; // default
+        // Anti-Ban: Add random delay before starting to "type"
+        let baseDelayMs = Math.floor(Math.random() * 5000) + 5000; // default: 5-10 seconds
         if (userObj?.aiUsageType === 'personal') {
-          delayMs = 60000; // 1 minute
+          baseDelayMs = Math.floor(Math.random() * 30000) + 30000; // 30-60 seconds
         } else if (userObj?.aiUsageType === 'business') {
-          delayMs = 0; // immediate
+          baseDelayMs = Math.floor(Math.random() * 3000) + 2000; // 2-5 seconds
         }
 
         const timeoutId = setTimeout(async () => {
           pendingReplies.delete(replyKey);
           try {
             const replyText = await generateAiReply(text as string, userObj);
-            await sock.sendMessage(remoteJid as string, { text: replyText });
-            lastAutoReplyTime.set(replyKey, Date.now()); 
-            io.to(userId).emit('new_message', { from: remoteJid, text, reply: replyText });
+            
+            // Anti-Ban: Simulate human typing behavior
+            await sock.sendPresenceUpdate('composing', remoteJid as string);
+            
+            // Calculate typing duration based on message length (roughly 50ms per character, min 1s, max 8s)
+            const typingDelay = Math.max(1000, Math.min(replyText.length * 50, 8000));
+            
+            setTimeout(async () => {
+              try {
+                await sock.sendPresenceUpdate('paused', remoteJid as string);
+                await sock.sendMessage(remoteJid as string, { text: replyText });
+                lastAutoReplyTime.set(replyKey, Date.now()); 
+                io.to(userId).emit('new_message', { from: remoteJid, text, reply: replyText });
+              } catch (err) {
+                console.error('❌ Failed to send AI reply during typing phase', err);
+              }
+            }, typingDelay);
+
           } catch (err) {
-            console.error('❌ Failed to send AI reply', err);
+            console.error('❌ Failed to generate or send AI reply', err);
           }
-        }, delayMs);
+        }, baseDelayMs);
         
         pendingReplies.set(replyKey, timeoutId);
       }
@@ -265,3 +281,14 @@ export const initializeAllWhatsAppConnections = async () => {
     console.error('Failed to initialize background WhatsApp connections:', err);
   }
 };
+
+// Memory Leak Prevention: Cleanup old auto-reply records every 12 hours
+setInterval(() => {
+  const now = Date.now();
+  const ONE_DAY = 24 * 60 * 60 * 1000;
+  for (const [key, timestamp] of lastAutoReplyTime.entries()) {
+    if (now - timestamp > ONE_DAY) {
+      lastAutoReplyTime.delete(key);
+    }
+  }
+}, 12 * 60 * 60 * 1000);

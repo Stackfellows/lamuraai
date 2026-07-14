@@ -39,7 +39,7 @@ const io = new Server(server, {
 });
 
 const allowedOrigins = process.env.NODE_ENV === 'production' 
-  ? [process.env.FRONTEND_URL || 'https://lamuraai.netlify.app'] 
+  ? [process.env.FRONTEND_URL || 'https://lamoraai.stackfellows.com'] 
   : [/^http:\/\/localhost:\d+$/, /^http:\/\/127\.0\.0\.1:\d+$/];
 
 const corsOptions = {
